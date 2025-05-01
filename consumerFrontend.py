@@ -2,8 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 import requests
 
-# BACKEND_URL = "https://noticeboard-backend-kmwd.onrender.com"
-BACKEND_URL = "http://localhost:5000"
+BACKEND_URL = "https://noticeboard-backend-kmwd.onrender.com"
+# BACKEND_URL = "http://localhost:5000"
 
 class NoticeBoardApp:
     def __init__(self, root):
