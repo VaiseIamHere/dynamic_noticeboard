@@ -40,6 +40,13 @@ def add_notice():
     data = request.get_json()
     notice_title = data.get("title")
     notice = data.get("notice")
+    labels = data.get("label", "general")  # still using `label` key for backward compatibility
+
+    # Normalize labels to a list
+    if isinstance(labels, str):
+        labels = [label.strip() for label in labels.split(",") if label.strip()]
+    elif not isinstance(labels, list):
+        labels = ["general"]
 
     if not notice_title or not notice:
         return jsonify({"error": "Title & Notice required"}), 400
@@ -48,13 +55,15 @@ def add_notice():
     notice_entry = {
         "title": notice_title,
         "notice": notice,
+        "labels": labels,
         "dateAdded": formatted_date,
         "moment": int(time.time() * 10000)
     }
 
     mongo.db.notices.update_one(
         {"_id": "notices_doc"},
-        {"$push": {"notices": notice_entry}}
+        {"$push": {"notices": notice_entry}},
+        upsert=True
     )
     return jsonify({"message": "Notice added successfully"}), 200
 
@@ -65,19 +74,23 @@ def get_notices():
     if not doc or "notices" not in doc:
         return jsonify([]), 200
 
-    # Convert and sort notices by dateAdded (descending)
     sorted_notices = sorted(
         doc["notices"],
-        key = lambda x: x.get("moment", 0),
+        key=lambda x: x.get("moment", 0),
         reverse=True
     )
 
-    notice_tuples = [
-        [notice.get("title", ""), notice.get("notice", ""), notice.get("dateAdded", "")]
+    notice_list = [
+        {
+            "title": notice.get("title", ""),
+            "notice": notice.get("notice", ""),
+            "dateAdded": notice.get("dateAdded", ""),
+            "labels": notice.get("labels", ["general"])
+        }
         for notice in sorted_notices
     ]
 
-    return jsonify(notice_tuples), 200
+    return jsonify(notice_list), 200
 
 @app.route('/notices', methods=['DELETE'])
 def delete_notices():
